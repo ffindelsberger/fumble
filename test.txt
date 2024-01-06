@@ -1,0 +1,10 @@
+let x = 8 + 8;
+x = x + 1;
+1;
+x;
+fn (x) {
+   let x = 5;
+   let y = 5 + 3;
+};
+fn (x,y) : int {};
+
