@@ -3,57 +3,11 @@
   #include <string.h>
   #include <stdlib.h>
   #include "ast.h"
-  #include "stack.h"
+  #include "stack.c"
 
   extern int yylineno;
   void yyerror (const char *);
   int yylex (void);
-
-
- // ast_node *node_create1(int type) {
- //   ast_node *node = calloc(sizeof(ast_node), 1);
- // 
- //   node->type = type;
- // 
- //   return node;
- // }
-
-  // Add the child to the next available position in the child list
-//  void add_child(ast_node* node, ast_node* child ) {
-//    for(int i = 0; i < CHILDREN_CAPACITY; i++) {
-//      if(node->children[i] == NULL) {
-//        node->children[i] = child; 
-//        break;
-//      }
-//    }
-//  }
-
-// ast* node_create(int type) {
-//   ast* node = calloc(sizeof(ast), 1); 
-//   node->type = type; 
-//   node->ast_type = AST_LEAF;
-//   return node;
-// }
-//
-// ast* unode_create(int type, ast* operand) {
-//   ast* node = calloc(sizeof(ast), 1); 
-//   node->type = type; 
-//   node->ast_type = AST_UNOP;
-//   node->value.unary.operand = operand;
-//
-//   return node;
-// }
-//
-// ast* binode_create(int type, ast* left, ast* right) {
-//   ast* node = calloc(sizeof(ast), 1); 
-//   node->type = type;
-//   node->ast_type = AST_BINOP;
-//   node->value.binary.left = left; 
-//   node->value.binary.right = right;
-//
-//   return node;
-//  }
-
 %}
 
 %union{
@@ -147,32 +101,6 @@ DECLARATION_VAR: let VARIABLE ':' TYPE ass BASE_EXPRESSION
 //PRINTLN: println BASE_EXPRESSION {$$ = node_create(println); add_child($$, $2);}
 
 %%
-
-//int eval(ast_node* node) {
-//  printf("interpreting node type: %d : ", node->type);
-//
-//  switch (node->type) {
-//  //    case '*' : printf("*\n");return eval(node->node.binary.left) * eval(node->node.binary.right);
-//      case '/' : printf("/\n");return eval(node->children[0]) / eval(node->children[1]);
-//      case '+' : printf("+\n");return eval(node->children[0]) + eval(node->children[1]);
-//      case '-' : printf("-\n");return eval(node->children[0]) - eval(node->children[1]);
-//      case '<' : printf("<\n");return eval(node->children[0]) > eval(node->children[1]);
-//      case '>' : printf(">\n");return eval(node->children[0]) < eval(node->children[1]);
-//      case equal : printf("equal\n");return eval(node->children[0]) == eval(node->children[1]);
-//      case not_equal : printf("not_equal\n");return eval(node->children[0]) != eval(node->children[1]);
-//      case num : printf("num\n");return node->val.number; 
-//      case println: {
-//          printf("println\n");
-//          printf("child type is : %d" , node->children[0]->type);
-//          printf("num is : %d" ,num);
-//         switch(node->children[0]->type) {
-//           case num: printf("%d\n", eval(node->children[0]));
-//         } 
-//      } 
-//  }
-//
-//  return 0;
-//}
 
 int eval(ast* node) {
   printf("interpreting node type: %d : ", node->type);
