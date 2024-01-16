@@ -6,15 +6,18 @@
 IDENTIFIER  [a-z]+
 DEC [0-9]+
 HEX 0x[0-9a-fA-F]+
+STRING_LITERAL \"[^\"]*\"
 
 OPERATOR  [-+*/]
-COMPARATOR_EQUAL "=="
-COMPARATOR_NOT_EQUAL "!="
-COMPARATOR_LESSER "<"
-COMPARATOR_GREATER ">"
+OPERATOR_EQUAL "=="
+OPERATOR_NOT_EQUAL "!="
+OPERATOR_LESSER "<"
+OPERATOR_GREATER ">"
+OPERATOR_LE "<="
+OPERATOR_GE ">="
 
 
-ASS "="
+EQ "="
 DELIMITER ";"
 
 KEY_IF "if"
@@ -46,10 +49,13 @@ TYPE_DOUBLE "double"
 {TYPE_DOUBLE} { return _double;  }
 {BUILTIN_PRINTLN} { return println;  }
 
-{COMPARATOR_EQUAL} { yylval.infix_op = *yytext; return equal;  }
-{COMPARATOR_NOT_EQUAL} { yylval.infix_op = *yytext ;return not_equal;  }
-{COMPARATOR_LESSER} { yylval.infix_op = *yytext ;return *yytext;  }
-{COMPARATOR_GREATER} { yylval.infix_op = *yytext ;return *yytext;  }
+{OPERATOR_EQUAL} { yylval.infix_op = *yytext; return equal;  }
+{OPERATOR_NOT_EQUAL} { yylval.infix_op = *yytext ;return not_equal;  }
+{OPERATOR_LESSER} { yylval.infix_op = *yytext ;return *yytext;  }
+{OPERATOR_GREATER} { yylval.infix_op = *yytext ;return *yytext;  }
+{OPERATOR_LE} { yylval.infix_op = *yytext ;return le;  }
+{OPERATOR_GE} { yylval.infix_op = *yytext ;return ge;  }
+{EQ} { 	return eq; }
 
 {IDENTIFIER}  { 
 		yylval.identifier = strdup(yytext); 
@@ -60,13 +66,27 @@ TYPE_DOUBLE "double"
 {HEX} { 
 	yylval.number = strtoul(yytext+2, NULL, 16); 
 	return num; }
+
+{STRING_LITERAL} {
+			printf("lexer read string %s \n\n", yytext);
+			int length = yyleng;
+			if(length == 2) {
+			 yylval.string =  "";	
+			 return string_literal;  
+			}
+
+			char* string = strdup(yytext);
+			char* out = NULL;
+			int len = strlen(string);
+			strcpy(out, ++string);
+			if(len > 1) out[len - 2] = '\0';
+			yylval.string = out;
+			return string_literal;
+		}
 {OPERATOR}  { 
 		yylval.infix_op = *yytext; 
 		//return op; 
 		return *yytext;}
-{ASS} { 
-	yylval.ass = strdup(yytext);
-	return ass; }
 {DELIMITER} { 
 		return delimiter;}
 

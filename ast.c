@@ -1,4 +1,5 @@
 #include "ast.h"
+#include <stdio.h>
 #include <stdlib.h>
 
 ast *node_create(int type) {

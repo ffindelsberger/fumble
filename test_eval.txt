@@ -1,2 +1,7 @@
-10 - -5;
+let x: int = 5;
+let y: int = 6;
+y = 5;
+x + y;
+
+
 

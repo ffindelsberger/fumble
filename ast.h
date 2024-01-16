@@ -12,10 +12,15 @@
 // } ast_node;
 
 ///
-enum data_type { INTEGER, STRING };
-union data_value {
+typedef enum { INTEGER, STRING } data_t;
+typedef union {
   int number;
   char *string;
+} data_value;
+
+struct data {
+  data_t type;
+  data_value value;
 };
 
 // struct node_data {
@@ -28,13 +33,20 @@ typedef struct ast {
   // terminals and NonTerminals
   int type;
 
-  enum data_type data_type;
+  data_t data_type;
   // "data" is the actual data value stored in the ast node. to inquire which
   // member of the union is populated inquire the data_type enum
-  union data_value data;
+  data_value data;
 
-  enum { AST_LEAF, AST_UNOP, AST_BINOP } ast_type;
+  char *identifier;
+
+  enum { AST_LEAF, AST_UNOP, AST_BINOP, ITEM, CALL } ast_type;
   union {
+
+    struct {
+      data_t data_t;
+      data_value data_v;
+    } leaf;
 
     struct {
       enum { UNOP_MINUS } op;
@@ -46,10 +58,23 @@ typedef struct ast {
       struct ast *right;
     } binary;
 
+    struct {
+      char *identifier;
+      struct ast *fparam;
+      struct ast *fn;
+    } item;
+
+    struct {
+      char *identifier;
+      struct ast *aparam;
+      struct ast *body;
+    } call_exp;
+
   } value;
 } ast;
 
 int eval(ast *tree);
 ast *node_create(int type);
+ast *node_create_with_type(int type, data_t data_type);
 ast *binode_create(int type, ast *left, ast *right);
 ast *unode_create(int type, ast *operand);

@@ -31,3 +31,6 @@ test: all
 
 test_eval: all
 	cat test_eval.txt | ./fumble
+
+test_string: all
+	cat test_string.txt | ./fumble
