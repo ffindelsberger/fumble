@@ -29,6 +29,7 @@ KEY_FN "fn"
 KEY_RETURN "return"
 
 BUILTIN_PRINTLN "println"
+BUILTIN_NEXT_INT "next_int()"
 
 TYPE_INT "int"
 TYPE_STRING "string"
@@ -48,6 +49,7 @@ TYPE_DOUBLE "double"
 {TYPE_STRING} { return _string;  }
 {TYPE_DOUBLE} { return _double;  }
 {BUILTIN_PRINTLN} { return println;  }
+{BUILTIN_NEXT_INT} { return next_int;}
 
 {OPERATOR_EQUAL} { yylval.infix_op = *yytext; return equal;  }
 {OPERATOR_NOT_EQUAL} { yylval.infix_op = *yytext ;return not_equal;  }
@@ -69,18 +71,10 @@ TYPE_DOUBLE "double"
 
 {STRING_LITERAL} {
 			printf("lexer read string %s \n\n", yytext);
-			int length = yyleng;
-			if(length == 2) {
-			 yylval.string =  "";	
-			 return string_literal;  
-			}
-
-			char* string = strdup(yytext);
-			char* out = NULL;
-			int len = strlen(string);
-			strcpy(out, ++string);
-			if(len > 1) out[len - 2] = '\0';
-			yylval.string = out;
+			// pointer arithmetic ro remove the first "
+			char* string = strdup(yytext + 1);
+			string[yyleng - 2] = '\0';
+			yylval.string = string;
 			return string_literal;
 		}
 {OPERATOR}  { 

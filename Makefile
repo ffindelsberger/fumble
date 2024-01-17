@@ -27,10 +27,10 @@ clean:
 	rm -f *.lex.* *.tab.* *.o $(TARGETS)
 
 test: all
-	cat test.txt | ./fumble
+	./fumble test.fumble
 
 test_eval: all
-	cat test_eval.txt | ./fumble
+	./fumble test_eval.fumble
 
 test_string: all
-	cat test_string.txt | ./fumble
+	./fumble test_string.fumble 

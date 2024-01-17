@@ -7,6 +7,7 @@
   #include "mem.c"
 
   extern int yylineno;
+  extern FILE* yyin;
   void yyerror (const char *);
   int yylex (void);
    
@@ -14,6 +15,9 @@
       int size;
       ast* funcs[];
   };
+
+  // My version of the "return register" where functions put values they are returning
+  data_t return_register = NULL;
 
   ast* func_lookup(struct f_table funcs,char *identifier) {
    for (int i = 0; i < funcs.size; i++) {
@@ -38,7 +42,8 @@
 
 %start PROG 
 
-%type <ast> PROG STATEMENTS STATEMENT BASE_EXPRESSION INFIX_EXPRESSION LITERAL LITERAL_NUMBER DECLARATION DECLARATION_VAR ASSIGNMENT
+%type <ast> PROG STATEMENTS STATEMENT BASE_EXPRESSION INFIX_EXPRESSION LITERAL LITERAL_NUMBER DECLARATION DECLARATION_VAR ASSIGNMENT BUILTIN_FUNC
+%type <ast> LITERAL_STRING 
 %type <ast> VARIABLE
 %type <infix_op> '*' '/' '+' '-' '<' '>' '%'
 %token stmts
@@ -65,6 +70,8 @@
        _return
        fn 
        let
+
+%token <ast> next_int
        println
 
 // Data types
@@ -78,15 +85,16 @@
 %left '*' '/' '%'
 
 %%
-PROG: STATEMENTS { printf("\n\n result : %d\n\n", eval($1));}
+PROG: STATEMENTS { printf("\n\n result : %d \n\n", eval($1));}
 
 //TODO: wenn mein programm nur aus einer zeile besteht dann executed der die glaub ich ned
+// answer : it actually does;
 STATEMENTS: STATEMENTS STATEMENT delimiter {$$ = binode_create(stmts, $1, $2);}
           | STATEMENT delimiter
 STATEMENT: DECLARATION | ASSIGNMENT | BASE_EXPRESSION | RETURN
 
 //basic Expression Grammar Rules
-BASE_EXPRESSION: INFIX_EXPRESSION | VARIABLE | LITERAL
+BASE_EXPRESSION: INFIX_EXPRESSION | VARIABLE | LITERAL | BUILTIN_FUNC
 
 INFIX_EXPRESSION: BASE_EXPRESSION '*' BASE_EXPRESSION {$$ = binode_create($2, $1, $3);}
                 | BASE_EXPRESSION '/' BASE_EXPRESSION {$$ = binode_create($2, $1, $3);}
@@ -101,12 +109,15 @@ INFIX_EXPRESSION: BASE_EXPRESSION '*' BASE_EXPRESSION {$$ = binode_create($2, $1
                 | BASE_EXPRESSION ge BASE_EXPRESSION {$$ = binode_create(ge, $1, $3);}
 
 
+BUILTIN_FUNC : next_int {$$ = node_create(next_int);}
+
+
 //Literals
 LITERAL: '-' LITERAL_NUMBER {$$ = unode_create($1, $2); }
        | LITERAL_NUMBER
-       | LITERAL_STRING
-LITERAL_NUMBER: num {$$ = node_create(num); $$->data.number = yylval.number;} 
-LITERAL_STRING: string_literal { printf("%s", $1);}
+       | LITERAL_STRING {printf("Got string from lexer: %s \n", $1);}
+LITERAL_NUMBER: num {$$ = node_create(num); $$->data.number = $1;} 
+LITERAL_STRING: string_literal {$$ = node_create(string_literal); $$->data.string = $1;}
 
 
 //FN RULES
@@ -144,7 +155,7 @@ RETURN: _return BASE_EXPRESSION
 %%
 
 int eval(ast *node) {
-  printf("interpreting node type: %d :", node->type);
+  printf("interpreting node type: %d : ", node->type);
 
 switch (node->ast_type) {
 
@@ -156,6 +167,7 @@ switch (node->ast_type) {
 
   case AST_BINOP:
     switch (node->type) {
+    // create a check for a skip flag in here;
     case stmts:
       return eval(node->value.binary.left), eval(node->value.binary.right);
     case '*':
@@ -195,6 +207,10 @@ switch (node->ast_type) {
     case num:
       printf("num\n");
       return node->data.number;
+    case string_literal: 
+      printf("string_literal\n");
+      printf("value of string literal is : %s \n", node->data.string);
+      return node->data.string;
     case let: {
       char* id = node->value.binary.left->identifier;
       int data = eval(node->value.binary.right); 
@@ -207,7 +223,14 @@ switch (node->ast_type) {
       printf("id -> returning value: %d for id : %s \n", ret, node->identifier);
       return ret;
     }
+    case next_int: {
+      printf("interpreting node type: next_int\n");
+      int next_int_value; 
+      //*c will read the newline to discard it;
+      scanf("%d%*c",&next_int_value);
+      return next_int_value;
     }
+   }
   }
 
   return 0;
@@ -217,9 +240,12 @@ void yyerror (const char *s) {
   printf("Error in line %d: %s\n", yylineno, s);
 }
 
-int main (void) {
+int main (int argc, char** argv) {
   #ifdef YYDEBUG
    yydebug = 1;
   #endif
+  
+  yyin = fopen(argv[1], "r");
+
   return yyparse();
 }
