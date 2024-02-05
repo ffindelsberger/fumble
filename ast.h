@@ -40,7 +40,7 @@ typedef struct ast {
 
   char *identifier;
 
-  enum { AST_LEAF, AST_UNOP, AST_BINOP, ITEM, CALL } ast_type;
+  enum { AST_LEAF, AST_UNOP, AST_BINOP, ITEM, CALL, CONDITION_IF } ast_type;
   union {
 
     struct {
@@ -70,7 +70,14 @@ typedef struct ast {
       struct ast *body;
     } call_exp;
 
-  } value;
+    struct {
+      struct ast *condition;
+      struct ast *branch_if;
+      struct ast *branch_else;
+    } condition_if;
+
+  } node;
+
 } ast;
 
 int eval(ast *tree);
@@ -78,3 +85,4 @@ ast *node_create(int type);
 ast *node_create_with_type(int type, data_t data_type);
 ast *binode_create(int type, ast *left, ast *right);
 ast *unode_create(int type, ast *operand);
+ast *create_if(ast *condition, ast *branch_if, ast *branch_else);

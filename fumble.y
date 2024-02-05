@@ -17,7 +17,7 @@
   };
 
   // My version of the "return register" where functions put values they are returning
-  data_t return_register = NULL;
+  static data_t return_register = NULL;
 
   ast* func_lookup(struct f_table funcs,char *identifier) {
    for (int i = 0; i < funcs.size; i++) {
@@ -42,7 +42,7 @@
 
 %start PROG 
 
-%type <ast> PROG STATEMENTS STATEMENT BASE_EXPRESSION INFIX_EXPRESSION LITERAL LITERAL_NUMBER DECLARATION DECLARATION_VAR ASSIGNMENT BUILTIN_FUNC
+%type <ast> PROG STATEMENTS STATEMENT BASE_EXPRESSION INFIX_EXPRESSION LITERAL LITERAL_NUMBER DECLARATION DECLARATION_VAR ASSIGNMENT BUILTIN_FUNC BLOCK COND_IF COND
 %type <ast> LITERAL_STRING 
 %type <ast> VARIABLE
 %type <infix_op> '*' '/' '+' '-' '<' '>' '%'
@@ -91,7 +91,7 @@ PROG: STATEMENTS { printf("\n\n result : %d \n\n", eval($1));}
 // answer : it actually does;
 STATEMENTS: STATEMENTS STATEMENT delimiter {$$ = binode_create(stmts, $1, $2);}
           | STATEMENT delimiter
-STATEMENT: DECLARATION | ASSIGNMENT | BASE_EXPRESSION | RETURN
+STATEMENT: DECLARATION | ASSIGNMENT | BASE_EXPRESSION | RETURN | COND_IF
 
 //basic Expression Grammar Rules
 BASE_EXPRESSION: INFIX_EXPRESSION | VARIABLE | LITERAL | BUILTIN_FUNC
@@ -120,6 +120,11 @@ LITERAL_NUMBER: num {$$ = node_create(num); $$->data.number = $1;}
 LITERAL_STRING: string_literal {$$ = node_create(string_literal); $$->data.string = $1;}
 
 
+//Conditionals
+COND_IF: _if BASE_EXPRESSION BLOCK { $$ = create_if($2, $3, NULL); }
+       | _if BASE_EXPRESSION BLOCK _else BLOCK { $$ = create_if($2, $3, $5); }
+
+
 //FN RULES
 FN_ITEM: OP ARGS CP BLOCK | identifier OP ARGS CP ':' TYPE BLOCK
 FN_BODY:  OC STATEMENTS CC | OC CC
@@ -127,7 +132,7 @@ DECLARATION_FN: fn FN_ITEM
 ARGS: ARGS ',' ARG | ARG
 ARG: identifier ':' TYPE
 
-BLOCK :'{' STATEMENTS '}'
+BLOCK :'{' STATEMENTS '}' {  $$ = $2;  }
       |'{' '}'
 
 
@@ -154,82 +159,98 @@ RETURN: _return BASE_EXPRESSION
 
 %%
 
-int eval(ast *node) {
-  printf("interpreting node type: %d : ", node->type);
+int eval(ast *ast) {
+  printf("interpreting ast type: %d : ", ast->type);
 
-switch (node->ast_type) {
+switch (ast->ast_type) {
 
   case AST_UNOP:
-    switch (node->type) {
+    switch (ast->type) {
     case '-':
-      return -eval(node->value.unary.operand);
+      return -eval(ast->node.unary.operand);
     }
 
   case AST_BINOP:
-    switch (node->type) {
+    switch (ast->type) {
     // create a check for a skip flag in here;
     case stmts:
-      return eval(node->value.binary.left), eval(node->value.binary.right);
+      return eval(ast->node.binary.left), eval(ast->node.binary.right);
     case '*':
-      return eval(node->value.binary.left) * eval(node->value.binary.right);
+      return eval(ast->node.binary.left) * eval(ast->node.binary.right);
     case '+':
       printf("+\n");
-      return eval(node->value.binary.left) + eval(node->value.binary.right);
+      return eval(ast->node.binary.left) + eval(ast->node.binary.right);
     case '-':
-      return eval(node->value.binary.left) - eval(node->value.binary.right);
+      return eval(ast->node.binary.left) - eval(ast->node.binary.right);
     case '<':
-      return eval(node->value.binary.left) < eval(node->value.binary.right);
+      return eval(ast->node.binary.left) < eval(ast->node.binary.right);
     case '>':
-      return eval(node->value.binary.left) > eval(node->value.binary.right);
+      return eval(ast->node.binary.left) > eval(ast->node.binary.right);
     case '%':
-      return eval(node->value.binary.left) % eval(node->value.binary.right);
+      return eval(ast->node.binary.left) % eval(ast->node.binary.right);
     case equal:
-      return eval(node->value.binary.left) == eval(node->value.binary.right);
+      return eval(ast->node.binary.left) == eval(ast->node.binary.right);
     case not_equal:
       printf("not_equal\n");
-      return eval(node->value.binary.left) != eval(node->value.binary.right);
+      return eval(ast->node.binary.left) != eval(ast->node.binary.right);
     case le:
       printf("le\n");
-      return eval(node->value.binary.left) >= eval(node->value.binary.right);
+      return eval(ast->node.binary.left) >= eval(ast->node.binary.right);
     case ge:
       printf("ge\n");
-      return eval(node->value.binary.left) <= eval(node->value.binary.right);
+      return eval(ast->node.binary.left) <= eval(ast->node.binary.right);
     case eq: {
       printf("eq\n");
-      int val = eval(node->value.binary.right);
-      char* id = node->value.binary.left->identifier;
+      int val = eval(ast->node.binary.right);
+      char* id = ast->node.binary.left->identifier;
       return  var_set(id, val);
       } 
     }
 
   case AST_LEAF:
-    switch (node->type) {
+    switch (ast->type) {
     case num:
       printf("num\n");
-      return node->data.number;
+      return ast->data.number;
     case string_literal: 
       printf("string_literal\n");
-      printf("value of string literal is : %s \n", node->data.string);
-      return node->data.string;
+      printf("node of string literal is : %s \n", ast->data.string);
+      return ast->data.string;
     case let: {
-      char* id = node->value.binary.left->identifier;
-      int data = eval(node->value.binary.right); 
+      char* id = ast->node.binary.left->identifier;
+      int data = eval(ast->node.binary.right); 
       printf("let -> ");
-      printf("declaring variable : %s with value %d \n", id, data);
+      printf("declaring variable : %s with node %d \n", id, data);
       return var_declare(id, data);
     }
     case identifier: {
-      int ret = var_get(node->identifier);
-      printf("id -> returning value: %d for id : %s \n", ret, node->identifier);
+      int ret = var_get(ast->identifier);
+      printf("id -> returning node: %d for id : %s \n", ret, ast->identifier);
       return ret;
     }
     case next_int: {
-      printf("interpreting node type: next_int\n");
+      printf("next_int\n");
       int next_int_value; 
       //*c will read the newline to discard it;
       scanf("%d%*c",&next_int_value);
       return next_int_value;
     }
+    case println : {
+      
+    }
+   }
+   
+   case CONDITION_IF: {
+      printf("conditional_if\n");
+      printf("Evaluation of Condition is : %d\n", eval(ast->node.condition_if.condition));
+      
+      if (eval(ast->node.condition_if.condition)) {
+        return eval(ast->node.condition_if.branch_if);
+      } else {
+        if (ast->node.condition_if.branch_else != NULL) {
+          return eval(ast->node.condition_if.branch_else); 
+        }
+      }
    }
   }
 
