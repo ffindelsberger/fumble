@@ -8,7 +8,7 @@ DEC [0-9]+
 HEX 0x[0-9a-fA-F]+
 STRING_LITERAL \"[^\"]*\"
 
-OPERATOR  [-+*/]
+OPERATOR  [-+*/%]
 OPERATOR_EQUAL "=="
 OPERATOR_NOT_EQUAL "!="
 OPERATOR_LESSER "<"
@@ -36,6 +36,7 @@ TYPE_STRING "string"
 TYPE_DOUBLE "double"
 
 
+
 %option noyywrap nounput noinput
 %%
 
@@ -45,6 +46,7 @@ TYPE_DOUBLE "double"
 {KEY_LOOP} { return loop; }
 {KEY_FN} { return fn; }
 {KEY_RETURN} { return _return; }
+{KEY_BREAK} { return _break; }
 {TYPE_INT} { return _int;  }
 {TYPE_STRING} { return _string;  }
 {TYPE_DOUBLE} { return _double;  }

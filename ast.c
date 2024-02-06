@@ -38,3 +38,12 @@ ast *create_if(ast *condition, ast *branch_if, ast *branch_else) {
 
   return n;
 }
+
+ast *create_loop(ast *body) {
+  ast *n = calloc(sizeof(ast), 1);
+
+  n->ast_type = LOOP;
+  n->node.loop.body = body;
+
+  return n;
+}

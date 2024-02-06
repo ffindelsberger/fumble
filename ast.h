@@ -18,10 +18,10 @@ typedef union {
   char *string;
 } data_value;
 
-struct data {
-  data_t type;
-  data_value value;
-};
+typedef struct data {
+  data_t t;
+  data_value v;
+} data;
 
 // struct node_data {
 //   enum data_type type;
@@ -40,7 +40,15 @@ typedef struct ast {
 
   char *identifier;
 
-  enum { AST_LEAF, AST_UNOP, AST_BINOP, ITEM, CALL, CONDITION_IF } ast_type;
+  enum {
+    AST_LEAF,
+    AST_UNOP,
+    AST_BINOP,
+    ITEM,
+    CALL,
+    CONDITION_IF,
+    LOOP
+  } ast_type;
   union {
 
     struct {
@@ -57,6 +65,10 @@ typedef struct ast {
       struct ast *left;
       struct ast *right;
     } binary;
+
+    struct {
+      struct ast *body;
+    } loop;
 
     struct {
       char *identifier;
@@ -80,9 +92,10 @@ typedef struct ast {
 
 } ast;
 
-int eval(ast *tree);
+data eval(ast *tree);
 ast *node_create(int type);
 ast *node_create_with_type(int type, data_t data_type);
 ast *binode_create(int type, ast *left, ast *right);
 ast *unode_create(int type, ast *operand);
 ast *create_if(ast *condition, ast *branch_if, ast *branch_else);
+ast *create_loop(ast *body);

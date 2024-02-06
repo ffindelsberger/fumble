@@ -1,12 +1,15 @@
-let x: int = 5;
 let y: int = next_int();
 
-if x + y > 10 {
-   1;
-} else {
-   2;
+let b: int = 10;
+loop {
+  y = y - 1;
+
+  b = b + 5;
+
+  if y == 5 {
+    break;
+  };
 };
 
-
-
-
+y;
+b;

@@ -2,6 +2,7 @@
   #include <stdio.h>
   #include <string.h>
   #include <stdlib.h>
+  #include <stdbool.h>
   #include "ast.h"
   //#include "stack.c"
   #include "mem.c"
@@ -16,8 +17,9 @@
       ast* funcs[];
   };
 
-  // My version of the "return register" where functions put values they are returning
-  static data_t return_register = NULL;
+  // "REGISTERS"
+  static data return_register = {};
+  bool break_f = false;
 
   ast* func_lookup(struct f_table funcs,char *identifier) {
    for (int i = 0; i < funcs.size; i++) {
@@ -42,7 +44,7 @@
 
 %start PROG 
 
-%type <ast> PROG STATEMENTS STATEMENT BASE_EXPRESSION INFIX_EXPRESSION LITERAL LITERAL_NUMBER DECLARATION DECLARATION_VAR ASSIGNMENT BUILTIN_FUNC BLOCK COND_IF COND
+%type <ast> PROG STATEMENTS STATEMENT BASE_EXPRESSION INFIX_EXPRESSION LITERAL LITERAL_NUMBER DECLARATION DECLARATION_VAR ASSIGNMENT BUILTIN_FUNC BLOCK COND_IF COND LOOP BREAK
 %type <ast> LITERAL_STRING 
 %type <ast> VARIABLE
 %type <infix_op> '*' '/' '+' '-' '<' '>' '%'
@@ -72,7 +74,7 @@
        let
 
 %token <ast> next_int
-       println
+       <ast> out 
 
 // Data types
 %token _int
@@ -80,18 +82,16 @@
        _double
 
 %left println
-%left '<' '>' equal not_equal le ge
+%left '<' '>' equal not_equal le ge eq
 %left '+' '-'
 %left '*' '/' '%'
 
 %%
 PROG: STATEMENTS { printf("\n\n result : %d \n\n", eval($1));}
 
-//TODO: wenn mein programm nur aus einer zeile besteht dann executed der die glaub ich ned
-// answer : it actually does;
 STATEMENTS: STATEMENTS STATEMENT delimiter {$$ = binode_create(stmts, $1, $2);}
           | STATEMENT delimiter
-STATEMENT: DECLARATION | ASSIGNMENT | BASE_EXPRESSION | RETURN | COND_IF
+STATEMENT: DECLARATION | ASSIGNMENT | BASE_EXPRESSION | RETURN | COND_IF | LOOP | BREAK
 
 //basic Expression Grammar Rules
 BASE_EXPRESSION: INFIX_EXPRESSION | VARIABLE | LITERAL | BUILTIN_FUNC
@@ -110,6 +110,7 @@ INFIX_EXPRESSION: BASE_EXPRESSION '*' BASE_EXPRESSION {$$ = binode_create($2, $1
 
 
 BUILTIN_FUNC : next_int {$$ = node_create(next_int);}
+             | out CP BASE_EXPRESSION CP 
 
 
 //Literals
@@ -120,9 +121,12 @@ LITERAL_NUMBER: num {$$ = node_create(num); $$->data.number = $1;}
 LITERAL_STRING: string_literal {$$ = node_create(string_literal); $$->data.string = $1;}
 
 
-//Conditionals
+//Control Statements
 COND_IF: _if BASE_EXPRESSION BLOCK { $$ = create_if($2, $3, NULL); }
        | _if BASE_EXPRESSION BLOCK _else BLOCK { $$ = create_if($2, $3, $5); }
+
+LOOP : loop BLOCK {  $$ = create_loop($2);  }
+BREAK : _break { $$ = node_create(_break); }
 
 
 //FN RULES
@@ -159,7 +163,7 @@ RETURN: _return BASE_EXPRESSION
 
 %%
 
-int eval(ast *ast) {
+data eval(ast *ast) {
   printf("interpreting ast type: %d : ", ast->type);
 
 switch (ast->ast_type) {
@@ -167,20 +171,28 @@ switch (ast->ast_type) {
   case AST_UNOP:
     switch (ast->type) {
     case '-':
-      return -eval(ast->node.unary.operand);
+      return -eval(ast->node.unary.operand).v.number;
     }
 
   case AST_BINOP:
     switch (ast->type) {
     // create a check for a skip flag in here;
-    case stmts:
-      return eval(ast->node.binary.left), eval(ast->node.binary.right);
+    case stmts: {
+        printf("stmts: break_f = %d \n", break_f);
+          int left = eval(ast->node.binary.left);
+          int right = 0;
+          if (!break_f) {
+            right = eval(ast->node.binary.right);
+          }
+          return left,right;
+    }
     case '*':
       return eval(ast->node.binary.left) * eval(ast->node.binary.right);
     case '+':
       printf("+\n");
       return eval(ast->node.binary.left) + eval(ast->node.binary.right);
     case '-':
+      printf("-\n");
       return eval(ast->node.binary.left) - eval(ast->node.binary.right);
     case '<':
       return eval(ast->node.binary.left) < eval(ast->node.binary.right);
@@ -188,7 +200,10 @@ switch (ast->ast_type) {
       return eval(ast->node.binary.left) > eval(ast->node.binary.right);
     case '%':
       return eval(ast->node.binary.left) % eval(ast->node.binary.right);
+    case '/':
+      return eval(ast->node.binary.left) / eval(ast->node.binary.right);
     case equal:
+      printf("equal\n");
       return eval(ast->node.binary.left) == eval(ast->node.binary.right);
     case not_equal:
       printf("not_equal\n");
@@ -210,7 +225,7 @@ switch (ast->ast_type) {
   case AST_LEAF:
     switch (ast->type) {
     case num:
-      printf("num\n");
+      printf("literal_num\n");
       return ast->data.number;
     case string_literal: 
       printf("string_literal\n");
@@ -228,6 +243,11 @@ switch (ast->ast_type) {
       printf("id -> returning node: %d for id : %s \n", ret, ast->identifier);
       return ret;
     }
+    case _break : {
+      printf("break\n");
+      break_f = true;
+      return 0; 
+    }
     case next_int: {
       printf("next_int\n");
       int next_int_value; 
@@ -242,8 +262,6 @@ switch (ast->ast_type) {
    
    case CONDITION_IF: {
       printf("conditional_if\n");
-      printf("Evaluation of Condition is : %d\n", eval(ast->node.condition_if.condition));
-      
       if (eval(ast->node.condition_if.condition)) {
         return eval(ast->node.condition_if.branch_if);
       } else {
@@ -251,7 +269,17 @@ switch (ast->ast_type) {
           return eval(ast->node.condition_if.branch_else); 
         }
       }
+      return 0; 
    }
+   case LOOP : {
+      int result = 0;
+      while(!break_f) {
+        result = eval(ast->node.loop.body);
+      }
+      break_f = false; 
+      return result;
+   }
+   
   }
 
   return 0;
