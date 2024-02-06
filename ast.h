@@ -62,6 +62,20 @@ typedef struct ast {
     } unary;
 
     struct {
+      enum KindBinary {
+        MINUS,
+        PLUS,
+        MUL,
+        LESS,
+        GREATER,
+        MOD,
+        DIV,
+        EQUAL,
+        NEQUAL,
+        ELESS,
+        EGREATER,
+        ASSIGN
+      } kind;
       struct ast *left;
       struct ast *right;
     } binary;
@@ -92,7 +106,7 @@ typedef struct ast {
 
 } ast;
 
-data eval(ast *tree);
+int eval(ast *tree);
 ast *node_create(int type);
 ast *node_create_with_type(int type, data_t data_type);
 ast *binode_create(int type, ast *left, ast *right);

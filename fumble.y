@@ -163,7 +163,7 @@ RETURN: _return BASE_EXPRESSION
 
 %%
 
-data eval(ast *ast) {
+int eval(ast *ast) {
   printf("interpreting ast type: %d : ", ast->type);
 
 switch (ast->ast_type) {
@@ -171,7 +171,7 @@ switch (ast->ast_type) {
   case AST_UNOP:
     switch (ast->type) {
     case '-':
-      return -eval(ast->node.unary.operand).v.number;
+      return -eval(ast->node.unary.operand);
     }
 
   case AST_BINOP:
