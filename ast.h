@@ -34,6 +34,7 @@ typedef struct ast {
   int type;
 
   data_t data_type;
+
   // "data" is the actual data value stored in the ast node. to inquire which
   // member of the union is populated inquire the data_type enum
   data_value data;
@@ -52,17 +53,19 @@ typedef struct ast {
   union {
 
     struct {
+      enum KindLeaf { STRLIT, NUMLIT, IDENT, NEXT_INT, BREAK } kind;
       data_t data_t;
       data_value data_v;
     } leaf;
 
     struct {
-      enum { UNOP_MINUS } op;
+      enum KindUnary { UNOP_MINUS } op;
       struct ast *operand;
     } unary;
 
     struct {
       enum KindBinary {
+        STMTS,
         MINUS,
         PLUS,
         MUL,
@@ -74,7 +77,8 @@ typedef struct ast {
         NEQUAL,
         ELESS,
         EGREATER,
-        ASSIGN
+        ASSIGN,
+        DECL,
       } kind;
       struct ast *left;
       struct ast *right;
@@ -107,9 +111,11 @@ typedef struct ast {
 } ast;
 
 int eval(ast *tree);
-ast *node_create(int type);
+ast *create_leaf(enum KindLeaf kind);
 ast *node_create_with_type(int type, data_t data_type);
 ast *binode_create(int type, ast *left, ast *right);
 ast *unode_create(int type, ast *operand);
 ast *create_if(ast *condition, ast *branch_if, ast *branch_else);
 ast *create_loop(ast *body);
+
+const char *getAstTypeName(int type);

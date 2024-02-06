@@ -1,0 +1,124 @@
+
+int eval_old(ast *ast) {
+  printf("interpreting ast type: %s : \n", getAstTypeName(ast->ast_type));
+  printf("token is : %s \n", yysymbol_name(YYTRANSLATE(ast->type)));
+
+switch (ast->ast_type) {
+
+  case AST_UNOP:
+    switch (ast->node.unary.op) {
+    case UNOP_MINUS:
+      return -eval(ast->node.unary.operand);
+    }
+
+  case AST_BINOP:
+    switch (ast->type) {
+    // create a check for a skip flag in here;
+    case stmts: {
+        printf("stmts: break_f = %d \n", break_f);
+          int left = eval(ast->node.binary.left);
+          int right = 0;
+          if (!break_f) {
+            right = eval(ast->node.binary.right);
+          }
+          return left,right;
+    }
+    case '*':
+      return eval(ast->node.binary.left) * eval(ast->node.binary.right);
+    case '+':
+      printf("+\n");
+      return eval(ast->node.binary.left) + eval(ast->node.binary.right);
+    case '-':
+      printf("-\n");
+      return eval(ast->node.binary.left) - eval(ast->node.binary.right);
+    case '<':
+      return eval(ast->node.binary.left) < eval(ast->node.binary.right);
+    case '>':
+      return eval(ast->node.binary.left) > eval(ast->node.binary.right);
+    case '%':
+      return eval(ast->node.binary.left) % eval(ast->node.binary.right);
+    case '/':
+      return eval(ast->node.binary.left) / eval(ast->node.binary.right);
+    case equal:
+      printf("equal\n");
+      return eval(ast->node.binary.left) == eval(ast->node.binary.right);
+    case not_equal:
+      printf("not_equal\n");
+      return eval(ast->node.binary.left) != eval(ast->node.binary.right);
+    case le:
+      printf("le\n");
+      return eval(ast->node.binary.left) >= eval(ast->node.binary.right);
+    case ge:
+      printf("ge\n");
+      return eval(ast->node.binary.left) <= eval(ast->node.binary.right);
+    case eq: {
+      printf("eq\n");
+      int val = eval(ast->node.binary.right);
+      char* id = ast->node.binary.left->identifier;
+      return  var_set(id, val);
+      } 
+    case let: {
+      char* id = ast->node.binary.left->identifier;
+      int data = eval(ast->node.binary.right); 
+      printf("let -> declaring variable : %s with node %d \n", id, data);
+      return var_declare(id, data);
+    }
+
+     default: return 0; 
+    }
+
+  case AST_LEAF:
+    printf("kind is %d \n", ast->node.leaf.kind);
+    switch (ast->node.leaf.kind) {
+    case NUMLIT:
+      printf("literal_num\n");
+      return ast->data.number;
+    case STRLIT: 
+      printf("kind is %d \n", ast->node.leaf.kind);
+      printf("string_literal\n");
+      printf("node of string literal is : %s \n", ast->data.string);
+      return ast->data.string;
+    case IDENT: {
+      int ret = var_get(ast->identifier);
+      printf("id -> returning node: %d for id : %s \n", ret, ast->identifier);
+      return ret;
+    }
+    case BREAK : {
+      printf("break\n");
+      break_f = true;
+      return 0; 
+    }
+    case NEXT_INT: {
+      printf("next_int\n");
+      int next_int_value; 
+      //*c will read the newline to discard it;
+      scanf("%d%*c",&next_int_value);
+      return next_int_value;
+    }
+     default: return 0; 
+   }
+   
+   case CONDITION_IF: {
+      printf("conditional_if\n");
+      if (eval(ast->node.condition_if.condition)) {
+        return eval(ast->node.condition_if.branch_if);
+      } else {
+        if (ast->node.condition_if.branch_else != NULL) {
+          return eval(ast->node.condition_if.branch_else); 
+        }
+      }
+      return 0; 
+   }
+   case LOOP : {
+      int result = 0;
+      while(!break_f) {
+        result = eval(ast->node.loop.body);
+      }
+      break_f = false; 
+      return result;
+   }
+  }
+
+  return 0;
+}
+
