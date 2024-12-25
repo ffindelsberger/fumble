@@ -83,15 +83,21 @@ data data_init(data_t t, data_value v) {
 
 extern bool break_f;
 
-int eval(ast *ast) {
+data eval(ast *ast) {
+  data empty = {};
+
   printf("interpreting ast type: %s : \n", getAstTypeName(ast->ast_type));
 
   switch (ast->ast_type) {
 
   case AST_UNOP:
     switch (ast->node.unary.op) {
-    case UNOP_MINUS:
-      return -eval(ast->node.unary.operand);
+    case UNOP_MINUS: {
+      data d;
+      d.t = INTEGER;
+      d.v.number = -eval(ast->node.unary.operand).v.number;
+      return d;
+    }
     }
 
   case AST_BINOP:
@@ -99,42 +105,91 @@ int eval(ast *ast) {
     // create a check for a skip flag in here;
     case STMTS: {
       // printf("stmts: break_f = %d \n", break_f);
-      int left = eval(ast->node.binary.left);
-      int right = 0;
+      data left = eval(ast->node.binary.left);
+      data right = {};
       if (!break_f) {
         right = eval(ast->node.binary.right);
       }
       return left, right;
     }
     case MUL: {
-      return eval(ast->node.binary.left) * eval(ast->node.binary.right);
+      data d;
+      d.t = INTEGER;
+      d.v.number = eval(ast->node.binary.left).v.number *
+                   eval(ast->node.binary.right).v.number;
+      return d;
     }
-    case PLUS:
-      // printf("+\n");
-      return eval(ast->node.binary.left) + eval(ast->node.binary.right);
-    case MINUS:
-      // printf("-\n");
-      return eval(ast->node.binary.left) - eval(ast->node.binary.right);
-    case LESS:
-      return eval(ast->node.binary.left) < eval(ast->node.binary.right);
-    case GREATER:
-      return eval(ast->node.binary.left) > eval(ast->node.binary.right);
-    case MOD:
-      return eval(ast->node.binary.left) % eval(ast->node.binary.right);
-    case DIV:
-      return eval(ast->node.binary.left) / eval(ast->node.binary.right);
-    case EQUAL:
-      // printf("equal\n");
-      return eval(ast->node.binary.left) == eval(ast->node.binary.right);
-    case NEQUAL:
-      // printf("not_equal\n");
-      return eval(ast->node.binary.left) != eval(ast->node.binary.right);
-    case ELESS:
-      // printf("le\n");
-      return eval(ast->node.binary.left) >= eval(ast->node.binary.right);
-    case EGREATER:
-      // printf("ge\n");
-      return eval(ast->node.binary.left) <= eval(ast->node.binary.right);
+    case PLUS: {
+      data d;
+      d.t = INTEGER;
+      d.v.number = eval(ast->node.binary.left).v.number +
+                   eval(ast->node.binary.right).v.number;
+      return d;
+    }
+    case MINUS: {
+      data d;
+      d.t = INTEGER;
+      d.v.number = eval(ast->node.binary.left).v.number -
+                   eval(ast->node.binary.right).v.number;
+      return d;
+    }
+    case LESS: {
+
+      data d;
+      d.t = INTEGER;
+      d.v.number = eval(ast->node.binary.left).v.number <
+                   eval(ast->node.binary.right).v.number;
+      return d;
+    }
+    case GREATER: {
+      data d;
+      d.t = INTEGER;
+      d.v.number = eval(ast->node.binary.left).v.number >
+                   eval(ast->node.binary.right).v.number;
+      return d;
+    }
+    case MOD: {
+      data d;
+      d.t = INTEGER;
+      d.v.number = eval(ast->node.binary.left).v.number %
+                   eval(ast->node.binary.right).v.number;
+      return d;
+    }
+    case DIV: {
+      data d;
+      d.t = INTEGER;
+      d.v.number = eval(ast->node.binary.left).v.number /
+                   eval(ast->node.binary.right).v.number;
+      return d;
+    }
+    case EQUAL: {
+      data d;
+      d.t = INTEGER;
+      d.v.number = eval(ast->node.binary.left).v.number ==
+                   eval(ast->node.binary.right).v.number;
+      return d;
+    }
+    case NEQUAL: {
+      data d;
+      d.t = INTEGER;
+      d.v.number = eval(ast->node.binary.left).v.number !=
+                   eval(ast->node.binary.right).v.number;
+      return d;
+    }
+    case ELESS: {
+      data d;
+      d.t = INTEGER;
+      d.v.number = eval(ast->node.binary.left).v.number >=
+                   eval(ast->node.binary.right).v.number;
+      return d;
+    }
+    case EGREATER: {
+      data d;
+      d.t = INTEGER;
+      d.v.number = eval(ast->node.binary.left).v.number <=
+                   eval(ast->node.binary.right).v.number;
+      return d;
+    }
     case ASSIGN: {
       // printf("eq\n");
       int val = eval(ast->node.binary.right);
@@ -148,55 +203,71 @@ int eval(ast *ast) {
       return var_declare(id, data);
     }
 
-    default:
-      return 0;
+    default: {
+      data d = {};
+      return d;
+    }
     }
 
   case AST_LEAF:
     // printf("kind is %d \n", ast->node.leaf.kind);
     switch (ast->node.leaf.kind) {
-    case NUMLIT:
-      // printf("literal_num\n");
-      return ast->data.number;
-    case STRLIT:
+    case NUMLIT: {
+      data d;
+      d.t = INTEGER;
+      d.v.number = ast->data.number;
+      return d;
+    }
+    case STRLIT: {
       // printf("kind is %d \n", ast->node.leaf.kind);
       // printf("string_literal\n");
       // printf("node of string literal is : %s \n", ast->data.string);
-      return ast->data.string;
+      data d;
+      d.t = STRING;
+      d.v.string = ast->data.string;
+      return d;
+    }
     case IDENT: {
-      int ret = var_get(ast->identifier);
+      data ret = var_get(ast->identifier);
       printf("id -> returning node: %d for id : %s \n", ret, ast->identifier);
       return ret;
     }
     case BREAK: {
       // printf("break\n");
       break_f = true;
-      return 0;
+      data d = {};
+      return d;
     }
     case NEXT_INT: {
       // printf("next_int\n");
       int next_int_value;
       //*c will read the newline to discard it;
       scanf("%d%*c", &next_int_value);
-      return next_int_value;
+      data d = {};
+      d.v.number = next_int_value;
+      d.t = INTEGER;
+      return d;
     }
-    default:
-      return 0;
+    default: {
+      data d = {};
+      return d;
+    }
     }
 
   case CONDITION_IF: {
     // printf("conditional_if\n");
-    if (eval(ast->node.condition_if.condition)) {
+    if (eval(ast->node.condition_if.condition).v.number) {
       return eval(ast->node.condition_if.branch_if);
     } else {
       if (ast->node.condition_if.branch_else != NULL) {
         return eval(ast->node.condition_if.branch_else);
       }
     }
-    return 0;
+    data d = {};
+    return d;
   }
   case LOOP: {
-    int result = 0;
+    data result;
     while (!break_f) {
       result = eval(ast->node.loop.body);
     }
@@ -205,5 +276,5 @@ int eval(ast *ast) {
   }
   }
 
-  return 0;
+  return empty;
 }

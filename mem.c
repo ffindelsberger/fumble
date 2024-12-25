@@ -1,12 +1,13 @@
+#include "ast.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-int var_declare_global(char *id, int val);
-int var_declare(char *id, int val);
-int var_set(char *id, int val);
-int var_get(char *id);
+data var_declare_global(char *id, data val);
+data var_declare(char *id, data val);
+data var_set(char *id, data val);
+data var_get(char *id);
 void var_enter_block(void);
 void var_leave_block(void);
 void var_enter_function(void);
@@ -15,7 +16,7 @@ void var_dump(void);
 
 typedef struct {
   char *id;
-  int val;
+  data val;
   int flags;
 } stackval_t;
 
@@ -54,7 +55,7 @@ static stackval_t *var_lookup(char *id, int border) {
   return NULL;
 }
 
-int var_declare_global(char *id, int val) {
+data var_declare_global(char *id, data val) {
   stackval_t *s = var_lookup(id, 0);
   if (s) {
     // Handle multiple declaration in same block
@@ -67,7 +68,7 @@ int var_declare_global(char *id, int val) {
   return val;
 }
 
-int var_declare(char *id, int val) {
+data var_declare(char *id, data val) {
   stackval_t *s = var_lookup(id, VAR_BORDER_BLOCK);
   if (s) {
     // Handle multiple declaration in same block
@@ -80,7 +81,7 @@ int var_declare(char *id, int val) {
   return val;
 }
 
-int var_set(char *id, int val) {
+data var_set(char *id, data val) {
   stackval_t *s = var_lookup(id, VAR_BORDER_FUNC);
   if (s)
     s->val = val;
@@ -93,15 +94,16 @@ int var_set(char *id, int val) {
   return val;
 }
 
-int var_get(char *id) {
+data var_get(char *id) {
   stackval_t *s = var_lookup(id, VAR_BORDER_FUNC);
   if (s)
     return s->val;
   else {
     // Handle usage of undeclared variable
     // Here: implicitly declare variable
-    var_declare(id, 0);
-    return 0;
+    // var_declare(id, 0);
+
+    return var_declare(id, 0);
   }
 }
 

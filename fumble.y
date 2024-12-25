@@ -37,6 +37,7 @@
   char infix_op;
   char *identifier;
   ast  *ast;
+  type data_t;
 }
 
 %define parse.error verbose
@@ -154,7 +155,9 @@ ASSIGNMENT: VARIABLE eq BASE_EXPRESSION {$$ = binode_create(ASSIGN, $1, $3);}
 
 //TODO: not the biggest fan dass ich hier direkt auf den identifier des child nodes zugreife
 DECLARATION_VAR: let VARIABLE ':' TYPE eq BASE_EXPRESSION {$$ = binode_create(DECL, $2, $6); }
-TYPE: _int | _string | _double
+TYPE: _int { $$ = INTEGEER; }
+    | _string { $$ = STRING; } 
+    | _double
 
 RETURN: _return BASE_EXPRESSION 
  

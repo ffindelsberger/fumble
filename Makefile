@@ -34,3 +34,5 @@ test_eval: all
 
 test_string: all
 	./fumble test_string.fumble 
+test_preofx_operation: all
+	./fumble
